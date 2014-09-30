@@ -52,6 +52,7 @@ public class AseConfiguration {
 	private final int chunkSize;
 	private final File mappabilityTrackFile;
 	private final double mappabilityMinimum;
+        private final File groupsFile;
 
 	static {
 
@@ -183,6 +184,11 @@ public class AseConfiguration {
 		OptionBuilder.withLongOpt("mappabilityMinimum");
 		OPTIONS.addOption(OptionBuilder.create("mm"));
 
+                OptionBuilder.withArgName("path");
+		OptionBuilder.hasArg();
+		OptionBuilder.withDescription("Path to a tab separated file with column 1 sample id and column 2 the group (tissue) the sample belongs to.");
+		OptionBuilder.withLongOpt("groups");
+		OPTIONS.addOption(OptionBuilder.create("gr"));
 
 	}
 
@@ -379,7 +385,7 @@ public class AseConfiguration {
 			try {
 				mappabilityMinimum = Integer.parseInt(commandLine.getOptionValue("mm"));
 				if (mappabilityMinimum < 0 || mappabilityMinimum > 1) {
-					throw new ParseException("--mappabilityMinimum must be between 0 and 1");
+		throw new ParseException("--mappabilityMinimum must be between 0 and 1");
 				}
 			} catch (NumberFormatException e) {
 				throw new ParseException("Error parsing --mappabilityMinimum \"" + commandLine.getOptionValue("mm") + "\" is not a double");
@@ -391,8 +397,15 @@ public class AseConfiguration {
 		}
 
 		debugMode = commandLine.hasOption('d');
+                
+               if (commandLine.hasOption("gr")) {
+			groupsFile = new File(commandLine.getOptionValue("gr"));
+		} else {
+			groupsFile = null;
+		}
 
 	}
+
 
 	public void printOptions() {
 
@@ -582,5 +595,9 @@ public class AseConfiguration {
 	public double getMappabilityMinimum() {
 		return mappabilityMinimum;
 	}
+        
+        public File getGroupsFile() {
+                return groupsFile;
+    }
 	
 }

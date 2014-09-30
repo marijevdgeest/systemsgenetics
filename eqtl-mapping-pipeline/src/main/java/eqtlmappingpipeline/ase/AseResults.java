@@ -5,8 +5,10 @@
 package eqtlmappingpipeline.ase;
 
 import gnu.trove.map.hash.TIntObjectHashMap;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import org.molgenis.genotype.Allele;
 import org.molgenis.genotype.variant.id.GeneticVariantId;
 import umcg.genetica.collections.ChrPosMap;
@@ -24,6 +26,10 @@ public class AseResults implements Iterable<AseVariantAppendable> {
 		results = new ChrPosMap<AseVariantAppendable>();
 	}
 
+    AseResults(Map<String, ArrayList<String>> sampleGroups) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
 	public synchronized void addResult(String chr, int pos, GeneticVariantId id, Allele a1, Allele a2, int a1Count, int a2Count, String sampleId, double a1MeanBaseQuality, double a2MeanBaseQuality) {
 		
 		addToResults(chr, pos, id, a1, a2, a1Count, a2Count, sampleId, a1MeanBaseQuality, a2MeanBaseQuality);
@@ -36,7 +42,7 @@ public class AseResults implements Iterable<AseVariantAppendable> {
 
 	}
 	
-	private synchronized void addToResults(String chr, int pos, GeneticVariantId id, Allele a1, Allele a2, int a1Count, int a2Count, String sampleId, double a1MeanBaseQuality, double a2MeanBaseQuality) {
+	private synchronized void addToResults(String chr, int pos, GeneticVariantId id, Allele a1, Allele a2, int a1Count, int a2Count, String sampleId, double a1MeanBaseQuality, double a2MeanBaseQuality ) {
 
 		AseVariantAppendable aseVariant = results.get(chr, pos);
 		if (aseVariant == null) {

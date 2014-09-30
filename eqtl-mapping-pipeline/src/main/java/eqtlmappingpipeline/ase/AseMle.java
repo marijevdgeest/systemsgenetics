@@ -65,7 +65,7 @@ public class AseMle {
 	}
 
 	public AseMle(IntArrayList a1Counts, IntArrayList a2Counts) {
-
+ 
 		double provisionalMaxLogLikelihood = Double.NEGATIVE_INFINITY;
 		double provisionalMaxLogLikelihoodP = 0.5;
 

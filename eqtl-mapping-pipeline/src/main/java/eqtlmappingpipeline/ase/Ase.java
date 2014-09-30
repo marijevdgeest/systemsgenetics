@@ -69,8 +69,9 @@ public class Ase {
 	private static final Date currentDataTime = new Date();
 	private static final Pattern TAB_PATTERN = Pattern.compile("\\t");
 	public static final NumberFormat DEFAULT_NUMBER_FORMATTER = NumberFormat.getInstance();
+        public static Map<String, ArrayList<String>> sampleGroups;
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws IOException, UnsupportedEncodingException, Exception {
 
 		System.out.println(HEADER);
 		System.out.println();
@@ -117,11 +118,14 @@ public class Ase {
 
 		try {
 
-			final AseResults aseResults = new AseResults();
+			final AseResults aseResults = new AseResults(sampleGroups);
 			final Set<String> detectedSampleSet = Collections.synchronizedSet(new HashSet<String>());
 			final RandomAccessGenotypeData referenceGenotypes;
 			final Map<String, String> refToStudySampleId;
 			final int minimumNumberSamples = configuration.getMinSamples();
+                   
+
+            
 
 			if (configuration.isRefSet()) {
 				try {
@@ -291,6 +295,11 @@ public class Ase {
 				}
 
 			}
+                        
+                        if (configuration.getGroupsFile() != null){
+                            SamplesToGroups samplesToGroups = new SamplesToGroups();
+                            sampleGroups = samplesToGroups.readGroups(configuration.getGroupsFile()); 
+                        }
 
 
 			AseVariantAppendable[] aseVariants = new AseVariantAppendable[aseResults.getCount()];
@@ -717,4 +726,51 @@ public class Ase {
 		} while (running);
 
 	}
+        
+        
+        /**
+	 * Parse tab separated file with sample IDs and corresponding groups (tissues)
+         * 
+         * @author Marije van der Geest
+	 * @param groupsFile col 1 sample IDs and col 2 groups.
+         * @return HashMap with key sample ID and value group
+	 */
+        
+//        private static Map<String, ArrayList<String>> readGroups(File groupsFile) throws FileNotFoundException, UnsupportedEncodingException, IOException, Exception {
+//
+//		HashMap<String, ArrayList<String>> groupsMap = new HashMap<String, ArrayList<String>>();
+//		BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(groupsFile)));
+//
+//		String line;
+//		String[] elements;
+//                
+//		while ((line = reader.readLine()) != null) {
+//                        String compElement;
+//                        ArrayList<String> sampleList = null;
+//                        
+//			elements = TAB_PATTERN.split(line);
+//			if (elements.length != 2) {
+//				throw new Exception(elements.length + " columns instead of 2 columns for line " + line);
+//			}
+//                        
+//                        compElement = elements[1];
+//                        sampleList.add(elements[0]);
+//                        
+//                        while ((line = reader.readLine()) != null) {
+//                            elements = TAB_PATTERN.split(line);
+//                            if (compElement.equals(elements[1])){
+//                                    sampleList.add(elements[0]);
+//                            }else{
+//                                    continue;
+//                                 }
+//                        groupsMap.put(compElement, sampleList);
+//                        
+//                        }
+//		
+//		
+//
+//		}
+//
+//		return groupsMap;
+//	}
 }

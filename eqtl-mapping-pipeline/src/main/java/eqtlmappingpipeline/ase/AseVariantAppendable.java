@@ -3,7 +3,10 @@ package eqtlmappingpipeline.ase;
 import cern.colt.list.tdouble.DoubleArrayList;
 import cern.colt.list.tint.IntArrayList;
 import cern.jet.stat.tdouble.Probability;
+import static eqtlmappingpipeline.ase.Ase.sampleGroups;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import org.apache.commons.math3.stat.inference.AlternativeHypothesis;
 import org.apache.commons.math3.stat.inference.BinomialTest;
 import org.apache.commons.math3.stat.regression.SimpleRegression;
@@ -31,8 +34,10 @@ public class AseVariantAppendable implements AseVariant{
 	private double metaPvalue;
 	private double countPearsonR;
 	private AseMle mle;
+        private AseMlePerGroup mlePerGroup;
 	private static final BinomialTest btest = new BinomialTest();
 	private static final double LARGEST_ZSCORE = Probability.normalInverse(Double.MIN_NORMAL);
+//        private final HashMap sampleGroups;
 
 	public AseVariantAppendable(String chr, int pos, GeneticVariantId id, Allele a1, Allele a2) {
 		this.chr = chr;
@@ -50,6 +55,7 @@ public class AseVariantAppendable implements AseVariant{
 		this.metaPvalue = Double.NaN;
 		this.countPearsonR = Double.NaN;
 		this.mle = null;
+                this.mlePerGroup = null;
 	}
 
 	@Override
@@ -128,8 +134,12 @@ public class AseVariantAppendable implements AseVariant{
 		metaZscore = zscoreSum / Math.sqrt(a1Counts.size());
 		metaPvalue = 2 * Probability.normal(-Math.abs(metaZscore));
 		mle = new AseMle(a1Counts, a2Counts);
+                mlePerGroup = AseMlePerGroup(a1Counts, a2Counts, sampleIds, (HashMap) sampleGroups);
+             
 
 	}
+
+
 	@Override
 	public double getMetaZscore() {
 		if(Double.isNaN(metaZscore)){
@@ -210,5 +220,17 @@ public class AseVariantAppendable implements AseVariant{
 		}
 		return mle;
 	}
+        
+        public AseMlePerGroup getMlePerGroup() {
+                return mlePerGroup;
+    }
+
+    private AseMlePerGroup AseMlePerGroup(IntArrayList a1Counts, IntArrayList a2Counts, GeneticVariantId id) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    private AseMlePerGroup AseMlePerGroup(IntArrayList a1Counts, IntArrayList a2Counts, ArrayList<String> sampleIds, HashMap sampleGroups1) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
 	
 }
