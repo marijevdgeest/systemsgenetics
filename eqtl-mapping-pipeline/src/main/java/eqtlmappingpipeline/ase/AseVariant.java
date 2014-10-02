@@ -31,6 +31,8 @@ public interface AseVariant extends Comparable<AseVariant> {
 	double getMetaZscore();
 
 	AseMle getMle();
+        
+        AseMlePerGroup getMlePerGroup();
 
 	DoubleArrayList getPValues();
 

@@ -1,4 +1,3 @@
-
 package eqtlmappingpipeline.ase;
 
 import java.io.BufferedReader;
@@ -11,6 +10,7 @@ import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
@@ -18,49 +18,60 @@ import java.util.regex.Pattern;
  * @author Marije van der Geest
  */
 public class SamplesToGroups {
+
     private static final Pattern TAB_PATTERN = Pattern.compile("\\t");
+    private final HashMap<String, ArrayList<String>> groupsMap;
     
-     /**
-     * Parse tab separated file with sample IDs and corresponding groups (tissues)
-     * 
-     * @author Marije van der Geest
-     * @param groupsFile col 1 sample IDs and col 2 groups.
-     * @return HashMap with key sample ID and value group
-     */
-    public static Map<String, ArrayList<String>> readGroups(File groupsFile) throws FileNotFoundException, UnsupportedEncodingException, IOException, Exception {
+    
+    public SamplesToGroups(HashMap<String, ArrayList<String>> samplesToGroups){
+        this.groupsMap = samplesToGroups;
+    }
 
-		HashMap<String, ArrayList<String>> groupsMap = new HashMap<String, ArrayList<String>>();
-		BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(groupsFile)));
+    
+    public SamplesToGroups(File groupsFile) throws FileNotFoundException, IOException {
 
-		String line;
-		String[] elements;
+        groupsMap = new HashMap<String, ArrayList<String>>();
+        BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(groupsFile)));
+
+        String line;
+        String[] elements;
+
+        while ((line = reader.readLine()) != null) {
+            ArrayList<String> sampleList;
+            elements = TAB_PATTERN.split(line);
+            
+            if (!elements[12].isEmpty()) {
                 
-		while ((line = reader.readLine()) != null) {
-                        ArrayList<String> sampleList = null;
-			elements = TAB_PATTERN.split(line);
-                        
-			if (elements[12].isEmpty()) {
-                            continue;
-			} else
-                            {
-                            if (groupsMap.containsKey(elements[12])){
-                                groupsMap.get(elements[12]).add(elements[1]);
+                if (groupsMap.containsKey(elements[12])) {
+                    sampleList = groupsMap.get(elements[12]);
 
-                            } else
-                            {
-                                sampleList.add(elements[1]);
-                                groupsMap.put(elements[12], sampleList);
-                            }
-                        }
-		}
+                } else {
+                    sampleList = new ArrayList<String>();                   
+                    groupsMap.put(elements[12], sampleList);
+                }
+                sampleList.add(elements[1]);
+            }
+        }
+        
 
-		return groupsMap;
-	}
-
-    SamplesToGroups() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
 
+
+    public Set<String> getGroups(){
+        return groupsMap.keySet();
+    }
     
+    public ArrayList<String> getGroupSamples(String group){
+        return groupsMap.get(group);
+    }
+    
+    /**
+     * Parse tab separated file with sample IDs and corresponding groups
+     * (tissues)
+     *
+     * @author Marije van der Geest
+     * @param groupsFile col 1 sample IDs and col 12 groups.
+     * @return HashMap with key a group and value an ArrayList with sample IDs
+     */
 }

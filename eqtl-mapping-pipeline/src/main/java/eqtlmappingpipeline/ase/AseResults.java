@@ -5,10 +5,7 @@
 package eqtlmappingpipeline.ase;
 
 import gnu.trove.map.hash.TIntObjectHashMap;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Map;
 import org.molgenis.genotype.Allele;
 import org.molgenis.genotype.variant.id.GeneticVariantId;
 import umcg.genetica.collections.ChrPosMap;
@@ -19,55 +16,59 @@ import umcg.genetica.collections.ChrPosMap;
  */
 public class AseResults implements Iterable<AseVariantAppendable> {
 
-	private final ChrPosMap<AseVariantAppendable> results; //Empty chr hashmaps will crash the iterator
-	private boolean encounteredBaseQuality = false;
+    private final ChrPosMap<AseVariantAppendable> results; //Empty chr hashmaps will crash the iterator
+    private boolean encounteredBaseQuality = false;
+    private final SamplesToGroups samplesToGroups;
 
-	public AseResults() {
-		results = new ChrPosMap<AseVariantAppendable>();
-	}
-
-    AseResults(Map<String, ArrayList<String>> sampleGroups) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    public AseResults() {
+        results = new ChrPosMap<AseVariantAppendable>();
+        this.samplesToGroups = null;
     }
 
-	public synchronized void addResult(String chr, int pos, GeneticVariantId id, Allele a1, Allele a2, int a1Count, int a2Count, String sampleId, double a1MeanBaseQuality, double a2MeanBaseQuality) {
-		
-		addToResults(chr, pos, id, a1, a2, a1Count, a2Count, sampleId, a1MeanBaseQuality, a2MeanBaseQuality);
-		encounteredBaseQuality = true;
-	}
-	
-	public synchronized void addResult(String chr, int pos, GeneticVariantId id, Allele a1, Allele a2, int a1Count, int a2Count, String sampleId) {
+    public AseResults(SamplesToGroups samplesToGroups) {
+        this.samplesToGroups = samplesToGroups;
+        results = new ChrPosMap<AseVariantAppendable>();
+    }
 
-		addToResults(chr, pos, id, a1, a2, a1Count, a2Count, sampleId, Double.NaN, Double.NaN);
+    public synchronized void addResult(String chr, int pos, GeneticVariantId id, Allele a1, Allele a2, int a1Count, int a2Count, String sampleId, double a1MeanBaseQuality, double a2MeanBaseQuality) {
 
-	}
-	
-	private synchronized void addToResults(String chr, int pos, GeneticVariantId id, Allele a1, Allele a2, int a1Count, int a2Count, String sampleId, double a1MeanBaseQuality, double a2MeanBaseQuality ) {
+        addToResults(chr, pos, id, a1, a2, a1Count, a2Count, sampleId, a1MeanBaseQuality, a2MeanBaseQuality);
+        encounteredBaseQuality = true;
+    }
 
-		AseVariantAppendable aseVariant = results.get(chr, pos);
-		if (aseVariant == null) {
-			aseVariant = new AseVariantAppendable(chr, pos, id, a1, a2);
-			results.put(chr, pos, aseVariant);
-		}
-		aseVariant.addCounts(a1Count, a2Count, sampleId, a1MeanBaseQuality, a2MeanBaseQuality);
-		
-	}
-	
-	public Iterator<AseVariantAppendable> chrIterator(String chr){
-		return results.chrIterator(chr);
-	}
+    public synchronized void addResult(String chr, int pos, GeneticVariantId id, Allele a1, Allele a2, int a1Count, int a2Count, String sampleId) {
 
-	@Override
-	public Iterator<AseVariantAppendable> iterator() {
-		return results.iterator();
-	}
-	
-	public boolean isEncounteredBaseQuality() {
-		return encounteredBaseQuality;
-	}
-	
-	public int getCount(){
-		return results.size();
-	}
-	
+        addToResults(chr, pos, id, a1, a2, a1Count, a2Count, sampleId, Double.NaN, Double.NaN);
+
+    }
+
+    private synchronized void addToResults(String chr, int pos, GeneticVariantId id, Allele a1, Allele a2, int a1Count, int a2Count, String sampleId, double a1MeanBaseQuality, double a2MeanBaseQuality) {
+
+        AseVariantAppendable aseVariant = results.get(chr, pos);
+        if (aseVariant == null) {
+            aseVariant = new AseVariantAppendable(chr, pos, id, a1, a2, samplesToGroups);
+            results.put(chr, pos, aseVariant);
+
+        }
+        aseVariant.addCounts(a1Count, a2Count, sampleId, a1MeanBaseQuality, a2MeanBaseQuality);
+
+    }
+
+    public Iterator<AseVariantAppendable> chrIterator(String chr) {
+        return results.chrIterator(chr);
+    }
+
+    @Override
+    public Iterator<AseVariantAppendable> iterator() {
+        return results.iterator();
+    }
+
+    public boolean isEncounteredBaseQuality() {
+        return encounteredBaseQuality;
+    }
+
+    public int getCount() {
+        return results.size();
+    }
+
 }

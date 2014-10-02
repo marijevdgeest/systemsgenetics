@@ -3,6 +3,7 @@ package eqtlmappingpipeline.ase;
 import cern.colt.list.tdouble.DoubleArrayList;
 import cern.colt.list.tint.IntArrayList;
 import java.util.ArrayList;
+import java.util.HashMap;
 import org.molgenis.genotype.Allele;
 import org.molgenis.genotype.variant.id.GeneticVariantId;
 
@@ -28,8 +29,9 @@ public class AseVariantBean implements AseVariant{
     private double LikelihoodRatioP;
     private double LikelihoodRatioD;
 	private AseMle mle;
+    private AseMlePerGroup mlePerGroup;
 
-	public AseVariantBean(String chr, int pos, GeneticVariantId id, Allele a1, Allele a2, IntArrayList a1Counts, IntArrayList a2Counts, DoubleArrayList pValues, ArrayList<String> sampleIds, double metaZscore, double metaPvalue, double countPearsonR) {
+	public AseVariantBean(String chr, int pos, GeneticVariantId id, Allele a1, Allele a2, IntArrayList a1Counts, IntArrayList a2Counts, DoubleArrayList pValues, ArrayList<String> sampleIds, double metaZscore, double metaPvalue, double countPearsonR, HashMap<String, ArrayList<String>> groupsMap) {
 		this.chr = chr;
 		this.pos = pos;
 		this.id = id;
@@ -143,6 +145,11 @@ public class AseVariantBean implements AseVariant{
 	public AseMle getMle() {
 		return mle;
 	}
+        
+        @Override
+        public AseMlePerGroup getMlePerGroup(){
+            return mlePerGroup;
+        }
 
 	@Override
 	public int getSampleCount() {

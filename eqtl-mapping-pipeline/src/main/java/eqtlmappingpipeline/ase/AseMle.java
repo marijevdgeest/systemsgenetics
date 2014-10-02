@@ -121,6 +121,8 @@ public class AseMle {
 				LOGGER.warn("Warning invalid ratio D: " + ratioD2 + ". max log likelihood: " + maxLogLikelihood + " null log likelihood: " + logLikelihoodNull + " max log likelihood p: " + maxLogLikelihoodP);
 			}
 
+        System.out.println("likelihood = " + maxLogLikelihood);
+        System.out.println("proportion = " + maxLogLikelihoodP);
 		}
 
 	}
