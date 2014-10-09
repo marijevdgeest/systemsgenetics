@@ -4,8 +4,6 @@ import cern.colt.list.tdouble.DoubleArrayList;
 import cern.colt.list.tint.IntArrayList;
 import cern.jet.stat.tdouble.Probability;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
 import org.apache.commons.math3.stat.inference.AlternativeHypothesis;
 import org.apache.commons.math3.stat.inference.BinomialTest;
 import org.apache.commons.math3.stat.regression.SimpleRegression;

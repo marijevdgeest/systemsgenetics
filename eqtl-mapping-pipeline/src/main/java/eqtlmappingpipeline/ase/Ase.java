@@ -345,8 +345,13 @@ public class Ase {
 
                 File outputFileBonferroni = new File(configuration.getOutputFolder(), correctionMethod == MultipleTestingCorrectionMethod.NONE ? "ase.txt" : "ase_" + correctionMethod.toString().toLowerCase() + ".txt");
                 try {
+                    Object writtenResults;
 
-                    int writtenResults = printAseResults(outputFileBonferroni, aseVariants, gtfAnnotations, correctionMethod, encounteredBaseQuality);
+                    if (configuration.getGroupsFile() == null) {
+                        writtenResults = printAseResults(outputFileBonferroni, aseVariants, gtfAnnotations, correctionMethod, encounteredBaseQuality);
+                    } else {
+                        writtenResults = printAseResultsPerGroup(outputFileBonferroni, aseVariants, gtfAnnotations, correctionMethod, encounteredBaseQuality);
+                    }
 
                     if (correctionMethod == MultipleTestingCorrectionMethod.NONE) {
                         System.out.println("Completed writing all " + DEFAULT_NUMBER_FORMATTER.format(writtenResults) + " ASE variants");
@@ -612,6 +617,170 @@ public class Ase {
 //
 //			}
             outputWriter.append('\n');
+
+        }
+
+        outputWriter.close();
+        return counter;
+
+    }
+
+    private static int printAseResultsPerGroup(final File outputFile, final AseVariantAppendable[] aseVariants, final PerChrIntervalTree<GffElement> gtfAnnotations, final MultipleTestingCorrectionMethod multipleTestingCorrectionMethod, final boolean encounteredBaseQuality) throws UnsupportedEncodingException, FileNotFoundException, IOException, AseException {
+
+        final BufferedWriter outputWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outputFile), AseConfiguration.ENCODING));
+
+        outputWriter.append("LikelihoodRatioP\tLikelihoodRatioD\teffect\tMeta_P\tMeta_Z\tChr\tPos\tSnpId\tSample_Count\tRef_Allele\tAlt_Allele\tCount_Pearson_R\tGenes\tRef_Counts\tAlt_Counts\tBinom_P\tSampleIds");
+
+//		if (encounteredBaseQuality) {
+//			outputWriter.append("\tRef_MeanBaseQuality\tAlt_MeanBaseQuality\tRef_MeanBaseQualities\tAlt_MeanBaseQualities");
+//		}
+        outputWriter.append('\n');
+
+        final double significance = 0.05;
+
+        int counter = 0;
+        double lastRatioD = Double.POSITIVE_INFINITY;
+
+        final int totalNumberOfTests = aseVariants.length;
+        final double bonferroniCutoff = significance / totalNumberOfTests;
+
+        HashSet<String> genesPrinted = new HashSet<String>();
+        aseVariants:
+        for (AseVariantAppendable aseVariant : aseVariants) {
+
+            double ratioD = aseVariant.getMlePerGroup().getRatioD();
+            if (ratioD > lastRatioD) {
+                throw new AseException("ASE results not sorted");
+            }
+            lastRatioD = ratioD;
+
+            switch (multipleTestingCorrectionMethod) {
+                case NONE:
+                    break;
+                case NOMINAL:
+                    if (aseVariant.getMlePerGroup().getRatioP() > significance) {
+                        break aseVariants;
+                    }
+                    break;
+                case BONFERRONI:
+                    if (aseVariant.getMlePerGroup().getRatioP() > bonferroniCutoff) {
+                        break aseVariants;
+                    }
+                    break;
+                case HOLM:
+                    final double holmCutoff = significance / (totalNumberOfTests - counter);
+                    if (aseVariant.getMlePerGroup().getRatioP() > holmCutoff) {
+                        break aseVariants;
+                    }
+                    break;
+                case BH:
+                    final double qvalue = ((counter + 1d) / totalNumberOfTests) * significance;
+                    if (aseVariant.getMlePerGroup().getRatioP() > qvalue) {
+                        break aseVariants;
+                    }
+                    break;
+                default:
+                    throw new AseException("Multiple testing method: " + multipleTestingCorrectionMethod + " is not supported");
+
+            }
+
+            ++counter;
+
+            outputWriter.append(String.valueOf(aseVariant.getMlePerGroup().getRatioP()));
+            outputWriter.append('\t');
+            outputWriter.append(String.valueOf(aseVariant.getMlePerGroup().getRatioD()));
+            outputWriter.append('\t');
+            outputWriter.append(String.valueOf(aseVariant.getMlePerGroup().getSumProportionPerGroup()));
+            outputWriter.append('\t');
+            outputWriter.append(String.valueOf(aseVariant.getMetaPvalue()));
+            outputWriter.append('\t');
+            outputWriter.append(String.valueOf(aseVariant.getMetaZscore()));
+            outputWriter.append('\t');
+            outputWriter.append(aseVariant.getChr());
+            outputWriter.append('\t');
+            outputWriter.append(String.valueOf(aseVariant.getPos()));
+            outputWriter.append('\t');
+            outputWriter.append(aseVariant.getId().getPrimairyId() == null ? "." : aseVariant.getId().getPrimairyId());
+            outputWriter.append('\t');
+            outputWriter.append(String.valueOf(aseVariant.getSampleCount()));
+            outputWriter.append('\t');
+            outputWriter.append(aseVariant.getA1().getAlleleAsString());
+            outputWriter.append('\t');
+            outputWriter.append(aseVariant.getA2().getAlleleAsString());
+            outputWriter.append('\t');
+
+            outputWriter.append(String.valueOf(aseVariant.getCountPearsonR()));
+            outputWriter.append('\t');
+
+            if (gtfAnnotations != null) {
+
+                genesPrinted.clear();
+
+                List<GffElement> elements = gtfAnnotations.searchPosition(aseVariant.getChr(), aseVariant.getPos());
+
+                boolean first = true;
+                for (GffElement element : elements) {
+
+                    String geneId = element.getAttributeValue("gene_id");
+
+                    if (genesPrinted.contains(geneId)) {
+                        continue;
+                    }
+
+                    if (first) {
+                        first = false;
+                    } else {
+                        outputWriter.append(',');
+                    }
+                    outputWriter.append(geneId);
+                    genesPrinted.add(geneId);
+                }
+
+            }
+
+            outputWriter.append('\t');
+            for (int i = 0; i < aseVariant.getA1Counts().size(); ++i) {
+                if (i > 0) {
+                    outputWriter.append(',');
+                }
+                outputWriter.append(String.valueOf(aseVariant.getA1Counts().getQuick(i)));
+            }
+
+            outputWriter.append('\t');
+            for (int i = 0; i < aseVariant.getA2Counts().size(); ++i) {
+                if (i > 0) {
+                    outputWriter.append(',');
+                }
+                outputWriter.append(String.valueOf(aseVariant.getA2Counts().getQuick(i)));
+            }
+
+            outputWriter.append('\t');
+            for (int i = 0; i < aseVariant.getPValues().size(); ++i) {
+                if (i > 0) {
+                    outputWriter.append(',');
+                }
+                outputWriter.append(String.valueOf(aseVariant.getPValues().getQuick(i)));
+            }
+
+            outputWriter.append('\t');
+            for (int i = 0; i < aseVariant.getSampleIds().size(); ++i) {
+                if (i > 0) {
+                    outputWriter.append(',');
+                }
+                outputWriter.append(aseVariant.getSampleIds().get(i));
+            }
+
+            outputWriter.append('\n');
+
+            outputWriter.append("group\tlikelihood ratio\tproportion");
+            for (Map.Entry<String, ArrayList<Double>> group : aseVariant.getMlePerGroup().getGroupLikelihoods().entrySet()) {
+                outputWriter.append(group.getKey());
+                outputWriter.append('\t');
+                outputWriter.append(String.valueOf(group.getValue().get(0)));
+                outputWriter.append('\t');
+                outputWriter.append(String.valueOf(group.getValue().get(1)));
+                outputWriter.append('\n');
+            }
 
         }
 

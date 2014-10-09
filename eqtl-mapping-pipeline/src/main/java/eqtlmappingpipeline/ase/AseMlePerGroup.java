@@ -6,9 +6,10 @@ import static eqtlmappingpipeline.ase.AseMle.lnbico;
 import static eqtlmappingpipeline.ase.AseMle.log1minProbabilities;
 import static eqtlmappingpipeline.ase.AseMle.logProbabilities;
 import static eqtlmappingpipeline.ase.AseMle.probabilities;
+import gnu.trove.map.hash.TObjectDoubleHashMap;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Map;
 import org.apache.log4j.Logger;
 
 /**
@@ -17,15 +18,25 @@ import org.apache.log4j.Logger;
  */
 public class AseMlePerGroup {
 
-    ArrayList nullLikelihoodPerGroup = null;
-    ArrayList proportionPerGroup = null;
-    ArrayList likelihoodPerGroup = null;
+    private ArrayList<Double> nullLikelihoodPerGroup = null;
+    private ArrayList<Double> proportionPerGroup = null;
+    private ArrayList<Double> likelihoodPerGroup = null;
+    private final double ratioD;
+    private final double ratioP;
+    private double sumLikelihoodPerGroup = 0;
+    private double sumNullLikelihoodPerGroup = 0;
+    private HashMap<String,ArrayList<Double>> groupLikelihoods = null;
+    private static final Logger LOGGER = Logger.getLogger(AseMle.class);
+    private double sumProportionPerGroup;
+    
 
     public AseMlePerGroup(IntArrayList a1Counts, IntArrayList a2Counts, ArrayList sampleIds, SamplesToGroups samplesToGroups) {
 
         nullLikelihoodPerGroup = new ArrayList();
         proportionPerGroup = new ArrayList();
         likelihoodPerGroup = new ArrayList();
+        groupLikelihoods = new HashMap(samplesToGroups.getGroupCounts());
+        ArrayList<Double> groupLikelihoodsList = new ArrayList();
 
         double maxLogLikelihood = 0;
         double maxLogLikelihoodP = 0;
@@ -50,20 +61,23 @@ public class AseMlePerGroup {
             int groupsIndex[] = new int[groupSamples.size()];
 
             {
-            int i = 0;
-            for (String sample : samplesToGroups.getGroupSamples(groupName)) {
-                groupsIndex[i] = sampleIds.indexOf(sample);
-                ++i;
+                int i = 0;
+                for (String sample : samplesToGroups.getGroupSamples(groupName)) {
+                    if (sampleIds.contains(sample)){
+                    groupsIndex[i] = sampleIds.indexOf(sample);
+                    ++i;} else{
+                        LOGGER.warn("Sample " +sample + " is not available.");
+                        
+                    }
+                    
+                }
             }
-            }
-
 
             // test all probabilities
             for (int i = 0; i < probabilities.length; ++i) {
 
                 double sumLogLikelihood = 0;
                 for (int s : groupsIndex) {
-                    //System.out.println(s);
                     sumLogLikelihood += logBinominalCoefficients[s] + (double) a1Counts.getQuick(s) * logProbabilities[i] + (double) a2Counts.getQuick(s) * log1minProbabilities[i];
                 }
 
@@ -80,7 +94,7 @@ public class AseMlePerGroup {
             }
 
             if (Double.isNaN(logLikelihoodNull)) {
-                throw new RuntimeException("Something went wrong during ASE analysis. This should not happen, please contact developers");
+                throw new RuntimeException("Something went wrong during ASE analysis. This should not happen, please contact developers.");
             }
 
             //Make sure to use null model in case of tie
@@ -94,14 +108,72 @@ public class AseMlePerGroup {
                 maxLogLikelihoodP = provisionalMaxLogLikelihoodP;
 
             }
+            
+            groupLikelihoodsList.add(maxLogLikelihoodP);
+            groupLikelihoodsList.add(maxLogLikelihood);
+
+            
+            groupLikelihoods.put(groupName, groupLikelihoodsList);
 
             proportionPerGroup.add(maxLogLikelihoodP);
             likelihoodPerGroup.add(maxLogLikelihood);
 
         }
 
-        System.out.println("likelihoodPerGroup = " + likelihoodPerGroup);
-        System.out.println("proportionPerGroup = " + proportionPerGroup);
+        for (double i : likelihoodPerGroup) {
+            sumLikelihoodPerGroup = sumLikelihoodPerGroup + i;
+        }
+
+        for (double i : nullLikelihoodPerGroup) {
+            sumNullLikelihoodPerGroup = sumNullLikelihoodPerGroup + i;
+        }
+        
+        for (double i : proportionPerGroup) {
+            sumProportionPerGroup = sumProportionPerGroup + i;
+        }
+        //Calcukate likelihood ratio 
+        double ratioD2 = (-2d * sumNullLikelihoodPerGroup) + (2d * sumLikelihoodPerGroup);
+        ratioD = ratioD2 < 0 ? 0 : ratioD2;
+        ratioP = Probability.chiSquareComplemented(1, ratioD);
+
+
+
+    }
+
+    public ArrayList<Double> getNullLikelihoodPerGroup() {
+        return nullLikelihoodPerGroup;
+    }
+
+    public ArrayList<Double> getProportionPerGroup() {
+        return proportionPerGroup;
+    }
+
+    public ArrayList<Double> getLikelihoodPerGroup() {
+        return likelihoodPerGroup;
+    }
+
+    public HashMap<String,ArrayList<Double>> getGroupLikelihoods() {
+        return groupLikelihoods;
+    }
+
+    public double getRatioD() {
+        return ratioD;
+    }
+
+    public double getRatioP() {
+        return ratioP;
+    }
+
+    public double getSumLikelihoodPerGroup() {
+        return sumLikelihoodPerGroup;
+    }
+
+    public double getSumNullLikelihoodPerGroup() {
+        return sumNullLikelihoodPerGroup;
+    }
+
+    public double getSumProportionPerGroup() {
+        return sumProportionPerGroup;
     }
 
 }

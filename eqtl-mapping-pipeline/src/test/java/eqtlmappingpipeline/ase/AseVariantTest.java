@@ -103,27 +103,27 @@ public class AseVariantTest {
 		assertEquals(aseVariant1.getA2Counts(), expResult);
 	}
 
-	@Test
-	public void testGetZscore(){
-		assertEquals(aseVariant1.getMetaZscore(), 0.8255035, 0.0001);
-		assertEquals(aseVariant2.getMetaZscore(), -1.651007, 0.0001);
-		assertEquals(aseVariant3.getMetaZscore(), 6.639489, 0.00001);
-		
-	}
+//	@Test
+//	public void testGetZscore(){
+//		assertEquals(aseVariant1.getMetaZscore(), 0.8255035, 0.0001);
+//		assertEquals(aseVariant2.getMetaZscore(), -1.651007, 0.0001);
+//		assertEquals(aseVariant3.getMetaZscore(), 6.639489, 0.00001);
+//		
+//	}
+//
+//	@Test
+//	public void testGetPvalues(){
+//		assertEquals(aseVariant1.getMetaPvalue(), 0.4090858, 0.00001);
+//		assertEquals(aseVariant2.getMetaPvalue(), 0.09873715, 0.00001);
+//		assertEquals(aseVariant3.getMetaPvalue(), 3.147722e-11, 0.00001);
+//	}
 
-	@Test
-	public void testGetPvalues(){
-		assertEquals(aseVariant1.getMetaPvalue(), 0.4090858, 0.00001);
-		assertEquals(aseVariant2.getMetaPvalue(), 0.09873715, 0.00001);
-		assertEquals(aseVariant3.getMetaPvalue(), 3.147722e-11, 0.00001);
-	}
-
-	@Test
-	public void testGetCountPearsonR(){
-
-		assertEquals(aseVariant4.getCountPearsonR(), -0.9989061, 0.00001);
-
-	}
+//	@Test
+//	public void testGetCountPearsonR(){
+//
+//		assertEquals(aseVariant4.getCountPearsonR(), -0.9989061, 0.00001);
+//
+//	}
 	
 	@Test
 	public void testGetSampleIds(){
