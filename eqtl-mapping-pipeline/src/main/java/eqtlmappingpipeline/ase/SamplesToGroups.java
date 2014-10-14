@@ -19,7 +19,7 @@ import java.util.regex.Pattern;
  */
 public class SamplesToGroups {
 
-    private static final Pattern TAB_PATTERN = Pattern.compile("\\t");
+    private static final Pattern TAB_PATTERN = Pattern.compile("\t");
     private final HashMap<String, ArrayList<String>> groupsMap;
 
     public SamplesToGroups(HashMap<String, ArrayList<String>> samplesToGroups) {
@@ -28,8 +28,8 @@ public class SamplesToGroups {
 
     /**
      * Parse tab separated file with sample IDs and corresponding groups
-     * (tissues)
-     * Returns HashMap with key a group and value an ArrayList with sample IDs
+     * (tissues) Returns HashMap with key a group and value an ArrayList with
+     * sample IDs
      *
      * @author Marije van der Geest
      * @param groupsFile col 1 sample IDs and col 12 groups.
@@ -43,22 +43,40 @@ public class SamplesToGroups {
         String[] elements;
 
         while ((line = reader.readLine()) != null) {
-            ArrayList<String> sampleList;
+            
             elements = TAB_PATTERN.split(line);
 
-            if (!elements[12].isEmpty()) {
-
-                if (groupsMap.containsKey(elements[12])) {
-                    sampleList = groupsMap.get(elements[12]);
-
+            if (elements[12] != null && !elements[12].isEmpty()) {
+                ArrayList sampleList;
+                sampleList = new ArrayList<String>();
+                if (!groupsMap.containsKey(elements[12].toLowerCase())) {
+                    
+                    sampleList.add(elements[1]);
+                    groupsMap.put(elements[12].toLowerCase(), sampleList);
+//                    groupsMap.put(elements[12].toLowerCase(), sampleList);
+                    
+//                    System.out.println("Key element[12]: " + elements[12]);
+//                    System.out.println("sample id: " + elements[1]);
+                    
                 } else {
-                    sampleList = new ArrayList<String>();
-                    groupsMap.put(elements[12], sampleList);
+                    sampleList = groupsMap.get(elements[12].toLowerCase());
+                    sampleList.add(elements[1]);
+                    
+                    
+                    groupsMap.put(elements[12].toLowerCase(), sampleList);
+                    
                 }
-                sampleList.add(elements[1]);
+//                System.out.println("Value: "+groupsMap.get(elements[12].toLowerCase()));
+                    
             }
-        }
 
+        }
+//        for(Map.Entry<String, ArrayList<String>> i : groupsMap.entrySet()){
+//            System.out.println(i.getKey());
+//            System.out.println(i.getValue());
+////        System.out.println(groupsMap.entrySet());
+//        }
+        
     }
 
     public Set<String> getGroups() {
@@ -66,10 +84,10 @@ public class SamplesToGroups {
     }
 
     public ArrayList<String> getGroupSamples(String group) {
-        return groupsMap.get(group);
+        return groupsMap.get(group.toLowerCase());
     }
-    
-    public int getGroupCounts(){
+
+    public int getGroupCounts() {
         return groupsMap.keySet().size();
     }
 

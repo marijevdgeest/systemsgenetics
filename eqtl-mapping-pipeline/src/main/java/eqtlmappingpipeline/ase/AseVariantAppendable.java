@@ -23,7 +23,7 @@ public class AseVariantAppendable implements AseVariant {
     private final Allele a2;
     private final IntArrayList a1Counts;
     private final IntArrayList a2Counts;
-	//private final DoubleArrayList a1MeanBaseQualities;
+    //private final DoubleArrayList a1MeanBaseQualities;
     //private final DoubleArrayList a2MeanBaseQualities;
     private final DoubleArrayList pValues;
     private final ArrayList<String> sampleIds;
@@ -36,10 +36,10 @@ public class AseVariantAppendable implements AseVariant {
     private static final double LARGEST_ZSCORE = Probability.normalInverse(Double.MIN_NORMAL);
     private final SamplesToGroups samplesToGroups;
 
-    public AseVariantAppendable(String chr, int pos, GeneticVariantId id, Allele a1, Allele a2){
+    public AseVariantAppendable(String chr, int pos, GeneticVariantId id, Allele a1, Allele a2) {
         this(chr, pos, id, a1, a2, null);
     }
-    
+
     public AseVariantAppendable(String chr, int pos, GeneticVariantId id, Allele a1, Allele a2, SamplesToGroups samplesToGroups) {
         this.chr = chr;
         this.pos = pos;
@@ -50,7 +50,7 @@ public class AseVariantAppendable implements AseVariant {
         this.a1Counts = new IntArrayList();
         this.a2Counts = new IntArrayList();
         this.pValues = new DoubleArrayList();
-		//this.a1MeanBaseQualities = new DoubleArrayList();
+        //this.a1MeanBaseQualities = new DoubleArrayList();
         //this.a2MeanBaseQualities = new DoubleArrayList();
         this.sampleIds = new ArrayList<String>();
         this.metaZscore = Double.NaN;
@@ -114,7 +114,7 @@ public class AseVariantAppendable implements AseVariant {
 
             final double pvalue = pValues.getQuick(i);
 
-			// we used 2 sided test so divide by 2
+            // we used 2 sided test so divide by 2
             //double zscore = normalDist.inverseCumulativeProbability(pvalue/2);
             final double pvalueDiv2 = pvalue / 2;
             final double zscore;
@@ -134,8 +134,11 @@ public class AseVariantAppendable implements AseVariant {
         countPearsonR = regression.getR();
         metaZscore = zscoreSum / Math.sqrt(a1Counts.size());
         metaPvalue = 2 * Probability.normal(-Math.abs(metaZscore));
-        mle = new AseMle(a1Counts, a2Counts);
-        mlePerGroup = AseMlePerGroup(a1Counts, a2Counts, sampleIds, samplesToGroups);
+//        if (samplesToGroups.getGroups() != null) {
+            mlePerGroup = new AseMlePerGroup(a1Counts, a2Counts, sampleIds, samplesToGroups);
+//        } else {
+//            mle = new AseMle(a1Counts, a2Counts);
+//        }
 
     }
 
@@ -171,7 +174,7 @@ public class AseVariantAppendable implements AseVariant {
 
         pValues.add(btest.binomialTest(a1Count + a2Count, a1Count, 0.5, AlternativeHypothesis.TWO_SIDED));
 
-		//a1MeanBaseQualities.add(a1MeanBaseQuality);
+        //a1MeanBaseQualities.add(a1MeanBaseQuality);
         //a2MeanBaseQualities.add(a2MeanBaseQuality);
         sampleIds.add(sampleId);
 
@@ -221,11 +224,13 @@ public class AseVariantAppendable implements AseVariant {
 
     @Override
     public AseMlePerGroup getMlePerGroup() {
+        if (mlePerGroup == null) {
+            calculateStatistics();
+        }
         return mlePerGroup;
     }
-
-    private AseMlePerGroup AseMlePerGroup(IntArrayList a1Counts, IntArrayList a2Counts, ArrayList<String> sampleIds, SamplesToGroups samplesToGroups) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
 }
+
+
+
+

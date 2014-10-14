@@ -122,7 +122,7 @@ public class Ase {
 
             if (configuration.getGroupsFile() != null) {
                 samplesToGroups = new SamplesToGroups(configuration.getGroupsFile());
-                aseResults = new AseResults();
+                aseResults = new AseResults(samplesToGroups);
             } else {
                 samplesToGroups = null;
                 aseResults = new AseResults();
