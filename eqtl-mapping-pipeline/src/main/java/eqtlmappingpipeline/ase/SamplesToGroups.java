@@ -6,14 +6,14 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
+ * Create hashmap where groups (tissues) are linked to the corresponding sample
+ * IDs.
  *
  * @author Marije van der Geest
  */
@@ -27,12 +27,13 @@ public class SamplesToGroups {
     }
 
     /**
-     * Parse tab separated file with sample IDs and corresponding groups
-     * (tissues) Returns HashMap with key a group and value an ArrayList with
-     * sample IDs
+     * Parse tab separated file with groups and corresponding sample IDs Returns
+     * HashMap with key a group and value an ArrayList with sample IDs
      *
      * @author Marije van der Geest
-     * @param groupsFile col 1 sample IDs and col 12 groups.
+     * @param groupsFile col 0 groups and col 1 sample IDs
+     * @throws java.io.FileNotFoundException
+     * @throws java.io.IOException
      */
     public SamplesToGroups(File groupsFile) throws FileNotFoundException, IOException {
 
@@ -43,40 +44,35 @@ public class SamplesToGroups {
         String[] elements;
 
         while ((line = reader.readLine()) != null) {
-            
+
             elements = TAB_PATTERN.split(line);
 
-            if (elements[12] != null && !elements[12].isEmpty()) {
-                ArrayList sampleList;
-                sampleList = new ArrayList<String>();
-                if (!groupsMap.containsKey(elements[12].toLowerCase())) {
-                    
-                    sampleList.add(elements[1]);
-                    groupsMap.put(elements[12].toLowerCase(), sampleList);
-//                    groupsMap.put(elements[12].toLowerCase(), sampleList);
-                    
-//                    System.out.println("Key element[12]: " + elements[12]);
-//                    System.out.println("sample id: " + elements[1]);
-                    
-                } else {
-                    sampleList = groupsMap.get(elements[12].toLowerCase());
-                    sampleList.add(elements[1]);
-                    
-                    
-                    groupsMap.put(elements[12].toLowerCase(), sampleList);
-                    
-                }
-//                System.out.println("Value: "+groupsMap.get(elements[12].toLowerCase()));
-                    
+            //If groups is not empty
+//            if (elements[0] != null && !elements[0].isEmpty()) {
+            ArrayList sampleList;
+            sampleList = new ArrayList<String>();
+            if (elements[0] == null && elements[0].isEmpty()) {
+                elements[0] = "other";
+            }
+
+            //If the map doesn't contain the group yet, add sample to sample list and put group and samplelist to map.
+            if (!groupsMap.containsKey(elements[0].toLowerCase())) {
+
+                sampleList.add(elements[1]);
+                groupsMap.put(elements[0].toLowerCase(), sampleList);
+
+                //If the group already exists, retrieve samplelist from group and add new sample. 
+            } else {
+                sampleList = groupsMap.get(elements[0].toLowerCase());
+                sampleList.add(elements[1]);
+
+                //Add updated samplelist to map. 
+                groupsMap.put(elements[0].toLowerCase(), sampleList);
+
             }
 
         }
-//        for(Map.Entry<String, ArrayList<String>> i : groupsMap.entrySet()){
-//            System.out.println(i.getKey());
-//            System.out.println(i.getValue());
-////        System.out.println(groupsMap.entrySet());
-//        }
-        
+
     }
 
     public Set<String> getGroups() {

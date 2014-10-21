@@ -6,13 +6,12 @@ import static eqtlmappingpipeline.ase.AseMle.lnbico;
 import static eqtlmappingpipeline.ase.AseMle.log1minProbabilities;
 import static eqtlmappingpipeline.ase.AseMle.logProbabilities;
 import static eqtlmappingpipeline.ase.AseMle.probabilities;
-import gnu.trove.map.hash.TObjectDoubleHashMap;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.HashMap;
 import org.apache.log4j.Logger;
 
 /**
+ * Calculate mle per group.
  *
  * @author Marije van der Geest
  */
@@ -25,22 +24,33 @@ public class AseMlePerGroup {
     private final double ratioP;
     private double sumLikelihoodPerGroup = 0;
     private double sumNullLikelihoodPerGroup = 0;
-    private HashMap<String,ArrayList<Double>> groupLikelihoods = null;
+    private HashMap<String, Double> groupLikelihoods = null;
+    private HashMap<String, Double> groupLikelihoodsP = null;
     private static final Logger LOGGER = Logger.getLogger(AseMle.class);
     private double sumProportionPerGroup;
-    
 
+    /**
+     * Retrieves ArrayLists with a1counts, a2counts and sample IDs and an object
+     * with groups and corresponding samples.
+     * Calculates mle for every group that contains samples from the sampleIds list.
+     * Calculates (null)likelihood ratio on the sum of the maximum (null)likelihoods.
+     *
+     * @author Marije van der Geest
+     * @param a1Counts
+     * @param a2Counts
+     * @param samplesToGroups
+     * @param sampleIds
+     */
     public AseMlePerGroup(IntArrayList a1Counts, IntArrayList a2Counts, ArrayList sampleIds, SamplesToGroups samplesToGroups) {
 
         nullLikelihoodPerGroup = new ArrayList();
         proportionPerGroup = new ArrayList();
         likelihoodPerGroup = new ArrayList();
         groupLikelihoods = new HashMap(samplesToGroups.getGroupCounts());
-        ArrayList<Double> groupLikelihoodsList = new ArrayList();
+        groupLikelihoodsP = new HashMap(samplesToGroups.getGroupCounts());
 
-        double maxLogLikelihood = 0;
-        double maxLogLikelihoodP = 0;
-
+        double maxLogLikelihood;
+        double maxLogLikelihoodP;
         double logLikelihoodNull = Double.NaN;
 
         //First calculate binominal coefficients
@@ -51,34 +61,40 @@ public class AseMlePerGroup {
             logBinominalCoefficients[i] = lnbico(totalReads, a1Count);
         }
 
-        // for each group
+        //For each group (tissue) from samplesToGroups object.
         for (String groupName : samplesToGroups.getGroups()) {
 
             double provisionalMaxLogLikelihood = Double.NEGATIVE_INFINITY;
             double provisionalMaxLogLikelihoodP = 0.5;
 
-            ArrayList<String> groupSamples = samplesToGroups.getGroupSamples(groupName);
-            int groupsIndex[] = new int[groupSamples.size()];
+            ArrayList<Integer> groupsIndex = new ArrayList();
 
             {
                 int i = 0;
+                //For each sample that belongs to the group.
                 for (String sample : samplesToGroups.getGroupSamples(groupName)) {
-                    if (sampleIds.contains(sample)){
-                    groupsIndex[i] = sampleIds.indexOf(sample);
-                    ++i;} else{
-                        LOGGER.warn("Sample " +sample + " is not available.");
-                        
+                    //Check if tissue is present in sampleIds list.
+                    if (sampleIds.contains(sample)) {
+                        //If present, save index in order to find the corresponding a1 and a2 counts.
+                        groupsIndex.add(sampleIds.indexOf(sample));
+                        ++i;
                     }
-                    
+                }
+
+                //If none of the samples from a group is present in the sampleIds,
+                //continue to the next tissue.
+                if (groupsIndex.isEmpty()) {
+                    continue;
                 }
             }
 
-            // test all probabilities
+            //Test all probabilities.
             for (int i = 0; i < probabilities.length; ++i) {
 
                 double sumLogLikelihood = 0;
-                for (int s : groupsIndex) {
-                    sumLogLikelihood += logBinominalCoefficients[s] + (double) a1Counts.getQuick(s) * logProbabilities[i] + (double) a2Counts.getQuick(s) * log1minProbabilities[i];
+                //For each sample from group, binomial test.
+                for (int s = 0; s < groupsIndex.size(); ++s) {
+                    sumLogLikelihood += logBinominalCoefficients[groupsIndex.get(s)] + (double) a1Counts.getQuick(groupsIndex.get(s)) * logProbabilities[i] + (double) a2Counts.getQuick(groupsIndex.get(s)) * log1minProbabilities[i];
                 }
 
                 if (sumLogLikelihood > provisionalMaxLogLikelihood) {
@@ -86,6 +102,7 @@ public class AseMlePerGroup {
                     provisionalMaxLogLikelihoodP = probabilities[i];
                 }
 
+                //If probability is 0.5, save null likelihood.
                 if (probabilities[i] == 0.5) {
                     logLikelihoodNull = sumLogLikelihood;
                     nullLikelihoodPerGroup.add(logLikelihoodNull);
@@ -108,36 +125,37 @@ public class AseMlePerGroup {
                 maxLogLikelihoodP = provisionalMaxLogLikelihoodP;
 
             }
-            
-            groupLikelihoodsList.add(maxLogLikelihoodP);
-            groupLikelihoodsList.add(maxLogLikelihood);
 
-            
-            groupLikelihoods.put(groupName, groupLikelihoodsList);
+            //Create hashmap where group is linked to the maximum likelihood.
+            groupLikelihoods.put(groupName, maxLogLikelihood);
+            //Create hashmap where group is linked to the proportion.
+            groupLikelihoodsP.put(groupName, maxLogLikelihoodP);
 
-            proportionPerGroup.add(maxLogLikelihoodP);
+            //Add maximum likelihoods to list.
             likelihoodPerGroup.add(maxLogLikelihood);
+            //Add proportions to list.
+            proportionPerGroup.add(maxLogLikelihoodP);
 
         }
 
+        //Calculate sum of likelihoods per group
         for (double i : likelihoodPerGroup) {
             sumLikelihoodPerGroup = sumLikelihoodPerGroup + i;
         }
 
+        //Calculate sum of nulllikelihoods per group
         for (double i : nullLikelihoodPerGroup) {
             sumNullLikelihoodPerGroup = sumNullLikelihoodPerGroup + i;
         }
-        
-        for (double i : proportionPerGroup) {
-            sumProportionPerGroup = sumProportionPerGroup + i;
-        }
-        //Calcukate likelihood ratio 
+
+        //Calculate likelihood ratio.
         double ratioD2 = (-2d * sumNullLikelihoodPerGroup) + (2d * sumLikelihoodPerGroup);
         ratioD = ratioD2 < 0 ? 0 : ratioD2;
         ratioP = Probability.chiSquareComplemented(1, ratioD);
-
-
-
+        System.out.println(groupLikelihoods);
+        System.out.println(groupLikelihoodsP);
+        System.out.println(ratioD);
+        System.out.println(ratioP);
     }
 
     public ArrayList<Double> getNullLikelihoodPerGroup() {
@@ -152,8 +170,12 @@ public class AseMlePerGroup {
         return likelihoodPerGroup;
     }
 
-    public HashMap<String,ArrayList<Double>> getGroupLikelihoods() {
+    public HashMap<String, Double> getGroupLikelihoods() {
         return groupLikelihoods;
+    }
+
+    public HashMap<String, Double> getGroupLikelihoodsP() {
+        return groupLikelihoodsP;
     }
 
     public double getRatioD() {

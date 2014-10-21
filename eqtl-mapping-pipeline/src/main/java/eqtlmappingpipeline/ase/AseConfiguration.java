@@ -186,7 +186,7 @@ public class AseConfiguration {
 
         OptionBuilder.withArgName("path");
         OptionBuilder.hasArg();
-        OptionBuilder.withDescription("Path to a tab separated file with column 1 sample id and column 2 the group (tissue) the sample belongs to.");
+        OptionBuilder.withDescription("Path to a tab separated file with column 1 the group (tissue) the sample belongs to and column 2 the sample ID, no header.");
         OptionBuilder.withLongOpt("groups");
         OPTIONS.addOption(OptionBuilder.create("gr"));
 

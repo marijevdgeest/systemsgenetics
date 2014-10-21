@@ -134,11 +134,13 @@ public class AseVariantAppendable implements AseVariant {
         countPearsonR = regression.getR();
         metaZscore = zscoreSum / Math.sqrt(a1Counts.size());
         metaPvalue = 2 * Probability.normal(-Math.abs(metaZscore));
-//        if (samplesToGroups.getGroups() != null) {
+
+        //If samplesToGroups object is empty then calculate mle, otherwise mlePerGroup
+        if (samplesToGroups == null) {
+            mle = new AseMle(a1Counts, a2Counts);
+        } else {
             mlePerGroup = new AseMlePerGroup(a1Counts, a2Counts, sampleIds, samplesToGroups);
-//        } else {
-//            mle = new AseMle(a1Counts, a2Counts);
-//        }
+        }
 
     }
 
@@ -182,13 +184,20 @@ public class AseVariantAppendable implements AseVariant {
 
     @Override
     public int compareTo(AseVariant o) {
-
-        double thisRatioD = this.getMle().getRatioD();
-        double otherRatioD = o.getMle().getRatioD();
-
-        //Reverse compare. Largest first
-        return Double.compare(otherRatioD, thisRatioD);
-
+        //If mlePerGroup is null compare mle ratio.
+        if (this.mlePerGroup == null) {
+            double thisRatioD = this.getMle().getRatioD();
+            double otherRatioD = o.getMle().getRatioD();
+            //Reverse compare. Largest first
+            return Double.compare(otherRatioD, thisRatioD);
+            
+        //Otherwise compare mlePerGroup ratio. 
+        } else {
+            double thisRatioD = this.getMlePerGroup().getRatioD();
+            double otherRatioD = o.getMlePerGroup().getRatioD();
+            //Reverse compare. Largest first
+            return Double.compare(otherRatioD, thisRatioD);
+        }
     }
 
     @Override
@@ -230,7 +239,3 @@ public class AseVariantAppendable implements AseVariant {
         return mlePerGroup;
     }
 }
-
-
-
-

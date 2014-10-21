@@ -123,8 +123,10 @@ public class AseMle {
 //            System.out.println("ratio D = " + ratioD);
 //            System.out.println("ratio P = " + ratioP);
 //
-//            System.out.println("likelihood = " + maxLogLikelihood);
-//            System.out.println("proportion = " + maxLogLikelihoodP);
+            System.out.println("likelihood = " + maxLogLikelihood);
+            System.out.println("proportion = " + maxLogLikelihoodP);
+              System.out.println(ratioD);
+        System.out.println(ratioP);
         }
 
     }

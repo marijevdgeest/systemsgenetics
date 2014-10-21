@@ -70,6 +70,7 @@ public class Ase {
     private static final Pattern TAB_PATTERN = Pattern.compile("\\t");
     public static final NumberFormat DEFAULT_NUMBER_FORMATTER = NumberFormat.getInstance();
     public static Map<String, ArrayList<String>> sampleGroups;
+    private static SamplesToGroups samplesToGroups;
 
     public static void main(String[] args) throws IOException, UnsupportedEncodingException, Exception {
 
@@ -117,9 +118,8 @@ public class Ase {
         LOGGER.debug("Java version: " + System.getProperty("java.version"));
 
         try {
-            final SamplesToGroups samplesToGroups;
             final AseResults aseResults;
-
+            //If groupsfile is not empty, parse file and create results with samplesToGroups.
             if (configuration.getGroupsFile() != null) {
                 samplesToGroups = new SamplesToGroups(configuration.getGroupsFile());
                 aseResults = new AseResults(samplesToGroups);
@@ -346,9 +346,10 @@ public class Ase {
                 File outputFileBonferroni = new File(configuration.getOutputFolder(), correctionMethod == MultipleTestingCorrectionMethod.NONE ? "ase.txt" : "ase_" + correctionMethod.toString().toLowerCase() + ".txt");
                 try {
                     Object writtenResults;
-
+                    //If groupsFile is null create output file for mle.
                     if (configuration.getGroupsFile() == null) {
                         writtenResults = printAseResults(outputFileBonferroni, aseVariants, gtfAnnotations, correctionMethod, encounteredBaseQuality);
+                    //Otherwise create outputfile for mle per group.
                     } else {
                         writtenResults = printAseResultsPerGroup(outputFileBonferroni, aseVariants, gtfAnnotations, correctionMethod, encounteredBaseQuality);
                     }
@@ -625,15 +626,30 @@ public class Ase {
 
     }
 
+    /**
+     * Creates output file for ase results per group.
+     *
+     * @author Marije van der Geest
+     * @param outputFile
+     * @param aseVariants must be sorted on significance
+     * @param gtfAnnotations
+     * @param onlyHolmSignificant
+     * @throws UnsupportedEncodingException
+     * @throws FileNotFoundException
+     * @throws IOException
+     * @throws AseException
+     */
     private static int printAseResultsPerGroup(final File outputFile, final AseVariantAppendable[] aseVariants, final PerChrIntervalTree<GffElement> gtfAnnotations, final MultipleTestingCorrectionMethod multipleTestingCorrectionMethod, final boolean encounteredBaseQuality) throws UnsupportedEncodingException, FileNotFoundException, IOException, AseException {
 
         final BufferedWriter outputWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outputFile), AseConfiguration.ENCODING));
+        //Append header.
+        outputWriter.append("LikelihoodRatioP\tLikelihoodRatioD\tChr\tPos\tSnpId\tSample_Count\tRef_Allele\tAlt_Allele\tGenes\tRef_Counts\tAlt_Counts\tSampleIds\t");
+        //Append header for each group.
+        for (String key : samplesToGroups.getGroups()) {
+            outputWriter.append("Likelihood_" + key + "\t");
+            outputWriter.append("effect_" + key + "\t");
+        }
 
-        outputWriter.append("LikelihoodRatioP\tLikelihoodRatioD\teffect\tMeta_P\tMeta_Z\tChr\tPos\tSnpId\tSample_Count\tRef_Allele\tAlt_Allele\tCount_Pearson_R\tGenes\tRef_Counts\tAlt_Counts\tBinom_P\tSampleIds");
-
-//		if (encounteredBaseQuality) {
-//			outputWriter.append("\tRef_MeanBaseQuality\tAlt_MeanBaseQuality\tRef_MeanBaseQualities\tAlt_MeanBaseQualities");
-//		}
         outputWriter.append('\n');
 
         final double significance = 0.05;
@@ -653,7 +669,7 @@ public class Ase {
                 throw new AseException("ASE results not sorted");
             }
             lastRatioD = ratioD;
-
+            //Create files for corrected values.
             switch (multipleTestingCorrectionMethod) {
                 case NONE:
                     break;
@@ -685,16 +701,10 @@ public class Ase {
             }
 
             ++counter;
-
+            //Append values for each variant.
             outputWriter.append(String.valueOf(aseVariant.getMlePerGroup().getRatioP()));
             outputWriter.append('\t');
             outputWriter.append(String.valueOf(aseVariant.getMlePerGroup().getRatioD()));
-            outputWriter.append('\t');
-            outputWriter.append(String.valueOf(aseVariant.getMlePerGroup().getSumProportionPerGroup()));
-            outputWriter.append('\t');
-            outputWriter.append(String.valueOf(aseVariant.getMetaPvalue()));
-            outputWriter.append('\t');
-            outputWriter.append(String.valueOf(aseVariant.getMetaZscore()));
             outputWriter.append('\t');
             outputWriter.append(aseVariant.getChr());
             outputWriter.append('\t');
@@ -709,8 +719,6 @@ public class Ase {
             outputWriter.append(aseVariant.getA2().getAlleleAsString());
             outputWriter.append('\t');
 
-            outputWriter.append(String.valueOf(aseVariant.getCountPearsonR()));
-            outputWriter.append('\t');
 
             if (gtfAnnotations != null) {
 
@@ -755,14 +763,6 @@ public class Ase {
             }
 
             outputWriter.append('\t');
-            for (int i = 0; i < aseVariant.getPValues().size(); ++i) {
-                if (i > 0) {
-                    outputWriter.append(',');
-                }
-                outputWriter.append(String.valueOf(aseVariant.getPValues().getQuick(i)));
-            }
-
-            outputWriter.append('\t');
             for (int i = 0; i < aseVariant.getSampleIds().size(); ++i) {
                 if (i > 0) {
                     outputWriter.append(',');
@@ -770,17 +770,23 @@ public class Ase {
                 outputWriter.append(aseVariant.getSampleIds().get(i));
             }
 
-            outputWriter.append('\n');
+            outputWriter.append('\t');
+            
+            //Append likelihood ratios and proportion per group. 
+            for (String group : samplesToGroups.getGroups()) {
+                if (aseVariant.getMlePerGroup().getGroupLikelihoods().keySet().contains(group)) {
 
-            outputWriter.append("group\tlikelihood ratio\tproportion");
-            for (Map.Entry<String, ArrayList<Double>> group : aseVariant.getMlePerGroup().getGroupLikelihoods().entrySet()) {
-                outputWriter.append(group.getKey());
-                outputWriter.append('\t');
-                outputWriter.append(String.valueOf(group.getValue().get(0)));
-                outputWriter.append('\t');
-                outputWriter.append(String.valueOf(group.getValue().get(1)));
-                outputWriter.append('\n');
+                    outputWriter.append(String.valueOf(aseVariant.getMlePerGroup().getGroupLikelihoods().get(group)));
+                    outputWriter.append('\t');
+                    outputWriter.append(String.valueOf(aseVariant.getMlePerGroup().getGroupLikelihoodsP().get(group)));
+                    outputWriter.append('\t');
+                  //If group not available for variant append 'NA'.
+                } else {
+                    outputWriter.append("NA\tNA\t");
+                }
             }
+
+            outputWriter.append('\n');
 
         }
 
